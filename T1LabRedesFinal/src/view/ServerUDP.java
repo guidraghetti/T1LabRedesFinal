@@ -14,11 +14,13 @@ import model.Usuario;
 public class ServerUDP {
 	
 	AcoesController acao = new AcoesController();
+	static String ipAlvo = "";
 	public static void main(String args[]) throws Exception {
 		List<Usuario> lstUser = new ArrayList<Usuario>();
 		ServerUDP server = new ServerUDP();
 		SimulaBanco smlBank = new SimulaBanco();
-		startBanco(smlBank);
+
+		//startBanco(smlBank);
 		// selecionar ação ao receber string
 		DatagramSocket serverSocket = new DatagramSocket(9876);
 		byte[] receiveData = new byte[1024];
@@ -28,15 +30,14 @@ public class ServerUDP {
 			serverSocket.receive(receivePacket);
 			String sentence = new String(receivePacket.getData());
 			//damos split nessa string, pois a metodo[0] nos dará qual metodo da controller deve ser chamado;
-			String[] metodo = sentence.split(":", 1);
+			String[] metodo = sentence.split(":");
 			//caso login commita novo usuario
-			server.selecionaAcao(metodo);
 			InetAddress IPAddress = receivePacket.getAddress();
-			
 			int port = receivePacket.getPort();
-			String capitalizedSentence = sentence.toUpperCase();
-			sendData = capitalizedSentence.getBytes();
-			DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, IPAddress, port);
+			String aux =server.selecionaAcao(metodo, smlBank, IPAddress.toString());
+			InetAddress IPDestino = InetAddress.getByName(ipAlvo);
+			sendData = aux.getBytes();
+			DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, IPDestino, port);
 			serverSocket.send(sendPacket);
 		}
 	}
@@ -51,10 +52,8 @@ public class ServerUDP {
 		obj.tipo = "key";
 		Objeto obj1 = new Objeto();
 		obj1.tipo = "door";
-		
-		obj.lstAdjascentes.add(obj1);
-		
 		lstObjetos.add(obj);
+		obj.lstAdjascentes.add(obj1);
 		root.lstObjetos = lstObjetos;  
 		
 		//
@@ -136,31 +135,79 @@ public class ServerUDP {
 	}
 	
 	//nos metodos de {LOGIN, FALAR, COCHICHAR E MOVER}, passo uma string inteira e temos que transformá-la em objeto dentro do metodo no controller
-	public  void selecionaAcao(String[] metodo) {
+	public  String selecionaAcao(String[] metodo, SimulaBanco banco, String ip) {
 		switch (metodo[0]) {
 		case "login":
-			acao.Login(metodo[1]);
+			return login(metodo[1], banco);
 		case "falar":
-			acao.falar(metodo[1]);
+			return acao.falar(metodo[1]);
 		case "cochicar":
-			acao.c(metodo[1]);
+			return findUser(metodo[1], banco, ip);
 		case "ajuda":
-			 acao.ajuda();
+			 return acao.ajuda();
 		case "examinar":
-			acao.examinar(obj);
+			return examinar(banco, ip);
 		case "usar":
-			acao.usar(obj, sala)
+			return usar(banco, ip);
 		case "largar":
-			acao.largar(metodo[1]);
-		case "mostrarInventário":
-			acao.mostrarInventario(u);
+			return largar(banco, ip);
+		case "mostrarInventario":
+			return mostrarInventario (banco, ip);
 		case "pegar":
-			acao.pegar(u, obj);
+			return pegar(banco, ip);
 		case "mover":
-			acao.mover(metodo[1], s);
-
+			return mover(metodo[1], banco, ip);
+		default:
+			return "método não encontrado";
 		}
-		
 
+	}
+
+	public String login (String login, SimulaBanco banco) {
+		System.out.println(banco.lstUsuario);
+		return acao.Login(login, banco);
+		
+	
+	}
+	public String findUser(String string, SimulaBanco banco, String ip) {
+		String[] separaUsuarioMensagem = string.split(",");
+		Usuario alvo = banco.findUserByNickname(separaUsuarioMensagem[0]);
+		ipAlvo = alvo.IP;
+		Usuario remetente = banco.findUserByIP(ip);
+		System.out.println(remetente.toString());
+		return acao.cochichar(separaUsuarioMensagem[1], alvo, remetente);
+		
+		
+	}
+	public String examinar (SimulaBanco banco, String ip) {
+		Usuario u = banco.findUserByIP(ip);
+		return acao.examinar(u.sala);
+	}
+	
+	public String usar (SimulaBanco banco, String ip) {
+		Usuario u = banco.findUserByIP(ip);
+		return acao.usar(u.lstObjetos.get(0), u.sala);
+	}
+	public String largar (SimulaBanco banco, String ip) {
+		Usuario u = banco.findUserByIP(ip);
+		return acao.largar(u, u.lstObjetos.get(0));
+	}
+	
+	public String mostrarInventario (SimulaBanco banco, String ip) {
+		Usuario u = banco.findUserByIP(ip);
+		System.out.println(u.toString());
+		return acao.mostrarInventario(u);
+		
+	}
+	
+	public String pegar (SimulaBanco banco, String ip) {
+		Usuario u = banco.findUserByIP(ip);
+		return acao.pegar(u);
+	}
+	public String mover (String direcao, SimulaBanco banco, String ip) {
+		Usuario u = banco.findUserByIP(ip);
+		u.sala = acao.mover(direcao, u.sala);
+		return "Usuário moveu-se";
+		
 	}
 }

@@ -45,7 +45,7 @@ class ClientUDP {
 			return usar();
 		case "largar":
 			return largar();
-		case "mostrarInventário":
+		case "mostrarInventario":
 			return inventario();
 		case "pegar":
 			return pegar();

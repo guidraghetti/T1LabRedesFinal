@@ -38,6 +38,13 @@ public class SimulaBanco {
 		return null;
 	}
 	
+	public Usuario findUserByNickname (String nick) {
+		for (Usuario usuario: lstUsuario) {
+			if (usuario.nick.equals(nick)) {
+				return usuario;
+			}
+		} return null;
+	}
 	public void addUsuario(Usuario u) {
 		this.lstUsuario.add(u);
 	}
